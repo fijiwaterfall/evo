@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reaction Lab · Еволюція мереж</title>
+<meta name="description" content="Локальна лабораторія еволюції частинок із мережами реакцій.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23111e25'/%3E%3Cpath d='M8 22L16 8L24 22Z' fill='none' stroke='%235de0b5' stroke-width='2'/%3E%3Cg fill='%235de0b5'%3E%3Ccircle cx='8' cy='22' r='3'/%3E%3Ccircle cx='16' cy='8' r='3'/%3E%3Ccircle cx='24' cy='22' r='3'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><div class="brand"><span class="mark">◉</span><div><strong>REACTION LAB</strong><span>Еволюція мереж · прототип 0.1</span></div></div><div class="status"><i id="lamp"></i><span id="status">Підключення…</span><span class="tag">ЛОКАЛЬНО</span></div></header>
+<main>
+<section class="toolbar" aria-label="Керування симуляцією"><div class="actions"><button id="play" class="primary">▶ Запустити</button><button id="step">+1 крок</button><label>Темп <select id="speed"><option value="1">Повільно</option><option value="5" selected>Звичайно</option><option value="100">Максимум</option></select></label></div><div class="settings"><label>Seed <input id="seed" type="number" value="1" min="0"></label><label>Частинок <input id="pop" type="number" value="2000" min="1" max="8000" step="100"></label><button id="reset">Новий світ</button></div></section>
+<section class="metrics" aria-label="Показники світу"><div><span>ПОПУЛЯЦІЯ</span><strong id="population">—</strong></div><div><span>НАРОДЖЕННЯ</span><strong id="births">—</strong></div><div><span>ПОКОЛІННЯ · МАКС.</span><strong id="generation">—</strong></div><div><span>ЖИВИХ ГЕНОМІВ</span><strong id="genomes">—</strong></div><div><span>ЗВ’ЯЗКИ</span><strong id="bonds">—</strong></div><div><span>ЧАС СВІТУ</span><strong id="time">—</strong></div></section>
+<div class="workspace">
+<section class="world-panel panel"><div class="panel-head"><div><span class="eyebrow">01 / СЕРЕДОВИЩЕ</span><h1>Світ на торі</h1></div><label class="layer">Колір <select id="layer"><option value="energy">Енергія</option><option value="genome">Геном</option><option value="generation">Покоління</option><option value="signal">Сигнал</option></select></label></div>
+<div class="canvas-wrap"><canvas id="world" aria-label="Частинки та їхні зв’язки. Натисніть частинку для дослідження."></canvas><div class="canvas-caption"><span id="legend">Темний → світлий: менше → більше енергії</span><span id="tick">Крок 0</span></div></div>
+<div class="world-footer"><span>Натисни частинку, щоб відкрити її мережу</span><span id="rate">— кроків/с</span></div>
+<div class="timeline" id="timelineBox" hidden><label>Кадр <input type="range" id="timeline" min="0" max="0" value="0"></label><button id="live">До живого світу</button></div>
+</section>
+<aside class="inspector panel"><div class="panel-head"><div><span class="eyebrow">02 / ВНУТРІШНЯ БУДОВА</span><h2 id="entityTitle">Обери частинку</h2></div><button id="pick" title="Вибрати живу частинку">↗ Обрати</button></div><div id="emptyInspector" class="empty"><span class="orb">◎</span><p>Кожна точка має власний стан<br>успадкованої мережі реакцій.</p><small>Лінії між точками — фізичні зв’язки.</small></div>
+<div id="entityContent" hidden><div id="entityStats" class="entity-stats"></div><canvas id="network" aria-label="Граф внутрішніх реакцій"></canvas><div class="network-caption">Розмір вузла — кількість носіїв<br>Яскраве ребро — остання виконана реакція</div><div id="reactions" class="reaction-list"></div></div>
+</aside>
+</div>
+<section class="bottom"><div class="panel trends"><div class="panel-head"><div><span class="eyebrow">03 / ІСТОРІЯ</span><h2>Зміни популяції</h2></div><span id="trendRange" class="muted"></span></div><canvas id="chart" aria-label="Графік кількості живих частинок"></canvas></div><div class="panel archive"><span class="eyebrow">04 / ЕКСПЕРИМЕНТ</span><h2>Зберегти й дослідити</h2><div class="archive-actions"><button id="save">↓ Checkpoint</button><label class="file-button">↑ Відкрити запис<input id="load" type="file" accept=".json"></label></div><p>Checkpoint відновлює весь світ. Файл прогону відкриває часову шкалу.</p><div id="diagnostic">Баланс енергії: —</div><div id="routing" class="routing">Маршрутизація: —</div></div></section>
+<div id="error" role="alert" hidden></div>
+<footer>Стартова мережа сконструйована. Нові геноми з’являються через мутації. Зростання комплексу саме по собі не доводить появу нового рівня організації.</footer>
+</main><script type="module" src="/app.mjs"></script></body></html>
