@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<title>Штучна еволюція v4 — заряди, насичення, експресія</title>
+<style>
+  :root{ color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body{
+    margin:0; font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    background:#05070a; color:#d7e0e8;
+    display:flex; flex-wrap:wrap; gap:16px; padding:16px;
+  }
+  h1{ font-size:14px; font-weight:600; margin:0 0 8px; color:#9fd6c4; letter-spacing:.02em; }
+  h2{ font-size:11px; font-weight:600; margin:14px 0 4px; color:#7fb3a8; }
+  .panel{ background:#0e131a; border:1px solid #1c2530; border-radius:10px; padding:14px; }
+  canvas{ display:block; background:#0b0f14; border-radius:8px; border:1px solid #1c2530; }
+  .stats{ width:280px; max-height:920px; overflow-y:auto; }
+  .stat-row{ display:flex; justify-content:space-between; gap:8px; font-size:11.2px; padding:2.5px 0; border-bottom:1px dashed #1a222c; color:#a9b6c0; }
+  .stat-row b{ color:#e7eef2; font-weight:600; text-align:right; }
+  .controls{ width:270px; }
+  .controls label{ display:block; font-size:11px; color:#8fa0ac; margin:10px 0 4px; }
+  .controls input[type=range]{ width:100%; }
+  .controls input[type=number]{ width:100%; background:#0b0f14; color:#d7e0e8; border:1px solid #2a3947; border-radius:5px; padding:5px; font-family:inherit; font-size:12px; }
+  button{
+    background:#16202b; color:#d7e0e8; border:1px solid #2a3947; border-radius:6px;
+    padding:7px 10px; font-family:inherit; font-size:12px; cursor:pointer; margin-right:6px;
+  }
+  button:hover{ background:#1d2a37; }
+  button.active{ border-color:#5fd0a5; color:#5fd0a5; }
+  .legend{ font-size:10.5px; color:#71828d; line-height:1.5; margin-top:10px; }
+  .val{ color:#f2c94c; }
+  .spark-label{ font-size:10px; color:#8fa0ac; margin:6px 0 2px; }
+  .spark canvas{ border-radius:4px; }
+  .feature{ display:flex; align-items:center; gap:6px; font-size:11px; color:#a9b6c0; padding:2px 0; }
+  .feature input{ accent-color:#5fd0a5; }
+  .feature.off{ color:#5b6772; }
+  .feature .step{ color:#f2c94c; font-size:10px; min-width:14px; }
+  .pending{ color:#e07b7b; font-size:10.5px; margin-top:6px; min-height:13px; }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <h1>ЕВОЛЮЦІЯ v4 — ЛОКАЛЬНЕ КОНСТРУЮВАННЯ</h1>
+  <canvas id="cv" width="900" height="600"></canvas>
+</div>
+
+<div class="panel stats">
+  <h1>СТАТИСТИКА</h1>
+  <div class="stat-row"><span>Tick</span><b id="s-tick">0</b></div>
+  <div class="stat-row"><span>Seed</span><b id="s-seed">—</b></div>
+  <div class="stat-row"><span>Макс. покоління</span><b id="s-gen">0</b></div>
+  <div class="stat-row"><span>Елементів</span><b id="s-entities">0</b></div>
+  <div class="stat-row"><span>Зв'язних компонент</span><b id="s-structs">0</b></div>
+  <div class="stat-row"><span>Розподіл розмірів (1/2/3/4/5+)</span><b id="s-sizedist">—</b></div>
+  <div class="stat-row"><span>Макс. розмір компоненти</span><b id="s-maxstruct">0</b></div>
+  <div class="stat-row"><span>Сер. розмір компоненти</span><b id="s-avgstruct">0</b></div>
+  <div class="stat-row"><span>Сер. тривалість життя компоненти</span><b id="s-lifetime">0</b></div>
+  <div class="stat-row"><span>Топ-мотиви</span><b id="s-motifs" style="max-width:150px; text-align:right; word-break:break-all;">—</b></div>
+  <div class="stat-row"><span>Сер. довжина геному</span><b id="s-avglen">0</b></div>
+  <div class="stat-row"><span>Макс. довжина геному</span><b id="s-maxlen">0</b></div>
+  <div class="stat-row"><span>Сер. к-сть зв'язків/елемент</span><b id="s-avgbonds">0</b></div>
+  <div class="stat-row"><span>Зв'язків всього</span><b id="s-bondstotal">0</b></div>
+  <div class="stat-row"><span>Генетичних ліній</span><b id="s-lineages">0</b></div>
+  <div class="stat-row"><span>Сер. схожість сусідів</span><b id="s-similarity">0</b></div>
+  <div class="stat-row"><span>Сер. енергія</span><b id="s-energy">0</b></div>
+  <div class="stat-row"><span>Макс. енергія</span><b id="s-maxenergy">0</b></div>
+  <div class="stat-row"><span>Сер. storage cost</span><b id="s-storagecost">0</b></div>
+  <div class="stat-row"><span>Сер. R-ген</span><b id="s-repldrive">0</b></div>
+  <div class="stat-row"><span>Сер. швидкість</span><b id="s-speed">0</b></div>
+  <div class="stat-row"><span>Сер. радіус сприйняття</span><b id="s-perc">0</b></div>
+  <div class="stat-row"><span>Народжень / смертей</span><b id="s-births">0 / 0</b></div>
+  <div class="stat-row"><span>Успішних / перерваних construct</span><b id="s-construct">0 / 0</b></div>
+  <div class="stat-row"><span>Операцій копіювання інформації</span><b id="s-infoops">0</b></div>
+
+  <h2>РОЗПОДІЛ ДІЙ</h2>
+  <div id="outcome-rows"></div>
+
+  <h2>ІСТОРІЯ (останні ~200 записів)</h2>
+  <div class="spark"><div class="spark-label">Population</div><canvas id="sp-pop" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Avg genome length</div><canvas id="sp-len" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Max component size</div><canvas id="sp-struct" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Bonds count</div><canvas id="sp-bonds" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Avg energy</div><canvas id="sp-energy" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Avg storage cost</div><canvas id="sp-storagecost" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Avg R-gene</div><canvas id="sp-repldrive" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Avg neighbor similarity</div><canvas id="sp-similarity" width="240" height="40"></canvas></div>
+  <div class="spark"><div class="spark-label">Construct rate</div><canvas id="sp-constructrate" width="240" height="40"></canvas></div>
+</div>
+
+<div class="panel controls">
+  <h1>КЕРУВАННЯ</h1>
+  <button id="btn-pause">⏸ Пауза</button>
+  <button id="btn-reset">⟲ Reset</button>
+  <button id="btn-turbo">⏩ Turbo</button>
+  <label>Швидкість: <span class="val" id="speed-val">1</span>× тіків/крок (поза Turbo)</label>
+  <input type="range" id="speed" min="1" max="60" value="1" step="1">
+
+  <label>Seed (порожньо = випадковий)</label>
+  <input type="number" id="seed" placeholder="напр. 12345">
+
+  <label>Масштаб світу (застосується при Reset)</label>
+  <select id="worldsize">
+    <option value="1">1× — 900×600</option>
+    <option value="1.5">1.5× — 1350×900</option>
+    <option value="2">2× — 1800×1200</option>
+    <option value="3">3× — 2700×1800</option>
+  </select>
+  <label>Початкова популяція: <span class="val" id="pop-val">140</span></label>
+  <input type="range" id="pop" min="30" max="1200" value="140" step="10">
+
+  <h2>КРОКИ v4.0</h2>
+  <div id="features"></div>
+  <div class="pending" id="pending-note"></div>
+
+  <div class="legend">
+    Прапорці фіксуються на створенні світу — зміна застосується при
+    <b>Reset</b>. Усі вимкнені = точна v3.1-база.<br><br>
+    Один seed + один набір прапорців = завжди той самий світ, тік у тік.
+  </div>
+</div>
+
+<!-- ?v= — обхід кешу браузера під час розробки -->
+<script src="core/rng.js?v=3"></script>
+<script src="core/simulation-core.js?v=3"></script>
+<script>
+'use strict';
+
+const { Simulation, Observer, OUTCOMES, FEATURE_DEFAULTS, wrapDelta } = window.EvoCore;
+
+/* =========================================================================
+   RENDERER — єдина частина, залежна від Canvas/DOM. Не впливає на фізику.
+   ========================================================================= */
+
+class Renderer {
+  constructor(canvas, sim){ this.canvas=canvas; this.ctx=canvas.getContext('2d'); this.sim=sim; }
+  render(){
+    const ctx=this.ctx, sim=this.sim, env=sim.env, cs=env.cellSize;
+    const scaleX = this.canvas.width / sim.W, scaleY = this.canvas.height / sim.H;
+    ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+    ctx.fillStyle='#0b0f14'; ctx.fillRect(0,0,sim.W,sim.H);
+    for(let cy=0; cy<env.rows; cy++){
+      for(let cx=0; cx<env.cols; cx++){
+        const v=env.grid[env.idx(cx,cy)];
+        if(v<0.05) continue;
+        ctx.fillStyle=`rgba(60,180,110,${Math.min(0.35,v*0.12)})`;
+        ctx.fillRect(cx*cs, cy*cs, cs, cs);
+      }
+    }
+    ctx.strokeStyle='rgba(240,220,140,0.55)'; ctx.lineWidth=1;
+    for(const bond of sim.bonds.values()){
+      const a=sim.entities.get(bond.a), b=sim.entities.get(bond.b);
+      if(!a || !b) continue;
+      const dx=wrapDelta(b.x-a.x,sim.W), dy=wrapDelta(b.y-a.y,sim.H);
+      const wrapDist=Math.hypot(dx,dy), directDist=Math.hypot(b.x-a.x,b.y-a.y);
+      if(Math.abs(wrapDist-directDist) < 0.5){
+        ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      }
+    }
+    for(const e of sim.entities.values()){
+      const avg=e.genome.typeAverages();
+      const hue=(avg.E*50+avg.C*160+avg.I*260+avg.A*30)%360;
+      ctx.fillStyle=`hsl(${hue},70%,${e.bonds.size>0?60:50}%)`;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, 2+e.phenotype.size*1.6, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+}
+
+function drawSparkline(canvas, data, color){
+  const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height;
+  ctx.fillStyle='#0b0f14'; ctx.fillRect(0,0,w,h);
+  if(data.length<2) return;
+  const min=Math.min(...data), max=Math.max(...data), range=(max-min)||1;
+  ctx.strokeStyle=color; ctx.lineWidth=1.4; ctx.beginPath();
+  data.forEach((v,i)=>{
+    const x=i/(data.length-1)*w, y=h-((v-min)/range)*h;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.fillStyle='#71828d'; ctx.font='9px monospace';
+  ctx.fillText(max.toFixed(2), 3, 9);
+  ctx.fillText(min.toFixed(2), 3, h-2);
+}
+
+/* =========================================================================
+   UI / BOOTSTRAP
+   ========================================================================= */
+
+const FEATURE_LABELS = {
+  internalStateReadout: ['1', 'internalState отримує readout'],
+  envOscillation:       ['2', 'коливання середовища'],
+  absorbBondFix:        ['3', 'absorb між зв\'язаними'],
+  absorbBondBreak:      ['3b', 'absorb розриває ребро (потребує кроку 3)'],
+  charges:              ['4', 'заряди + валентність + насичення'],
+  edgeModes:            ['5', 'провідність / домінування ребра'],
+  chargeExpression:     ['6', 'експресія за зарядом'],
+  neighborVector:       ['7', 'внесок сусідів (глибина 1)'],
+  flowBondStability:    ['8', 'стабільність зв\'язку з потоку'],
+};
+
+const featuresEl = document.getElementById('features');
+const pendingNote = document.getElementById('pending-note');
+const activeFeatures = {};
+const IMPLEMENTED = new Set(['internalStateReadout','envOscillation','absorbBondFix','absorbBondBreak','charges']); // кроки 5–8 відкладено за результатами кроку 4
+
+for(const key of Object.keys(FEATURE_DEFAULTS)){
+  const [step, label] = FEATURE_LABELS[key];
+  const row = document.createElement('label');
+  row.className = 'feature' + (IMPLEMENTED.has(key) ? '' : ' off');
+  const cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.dataset.key = key;
+  cb.disabled = !IMPLEMENTED.has(key);
+  cb.addEventListener('change', ()=>{
+    activeFeatures[key] = cb.checked;
+    pendingNote.textContent = 'Зміна набору законів застосується при Reset';
+  });
+  const step_ = document.createElement('span'); step_.className='step'; step_.textContent = step + '.';
+  const txt = document.createElement('span'); txt.textContent = label + (IMPLEMENTED.has(key) ? '' : ' (не реалізовано)');
+  row.appendChild(cb); row.appendChild(step_); row.appendChild(txt);
+  featuresEl.appendChild(row);
+}
+
+const outcomeRowsEl = document.getElementById('outcome-rows');
+const outcomeEls = {};
+for(const o of OUTCOMES){
+  const row = document.createElement('div');
+  row.className = 'stat-row';
+  const name = document.createElement('span'); name.textContent = o;
+  const val = document.createElement('b'); val.textContent = '0%';
+  row.appendChild(name); row.appendChild(val);
+  outcomeRowsEl.appendChild(row);
+  outcomeEls[o] = val;
+}
+
+const canvas = document.getElementById('cv');
+
+function buildSim(){
+  const popEl = document.getElementById('pop');
+  const seedEl = document.getElementById('seed');
+  const mult = parseFloat(document.getElementById('worldsize').value);
+  const seedRaw = seedEl.value.trim();
+  const features = {};
+  for(const [k,v] of Object.entries(activeFeatures)) if(v) features[k] = true;
+  return new Simulation({
+    popSize: parseInt(popEl.value, 10),
+    width: Math.round(900*mult), height: Math.round(600*mult),
+    popCap: Math.round(550*mult*mult),
+    seed: seedRaw === '' ? undefined : (parseInt(seedRaw,10) >>> 0),
+    features,
+  });
+}
+
+let sim = buildSim();
+const renderer = new Renderer(canvas, sim);
+
+let running = true, speed = 1, simTimer = null;
+let turboActive = false, frameCount = 0;
+
+function startSimLoop(){
+  if(simTimer) clearInterval(simTimer);
+  simTimer = setInterval(()=>{
+    if(!running || turboActive) return;
+    for(let i=0;i<speed;i++) sim.tick();
+  }, 40);
+}
+
+function renderLoop(){
+  frameCount++;
+  if(turboActive){
+    if(running){
+      const start = performance.now();
+      while(performance.now() - start < 18) sim.tick();
+    }
+    if(frameCount % 6 === 0){ renderer.render(); updateStatsPanel(); }
+  } else {
+    renderer.render();
+    updateStatsPanel();
+  }
+  requestAnimationFrame(renderLoop);
+}
+
+const sparkCanvases = {
+  pop: document.getElementById('sp-pop'),
+  len: document.getElementById('sp-len'),
+  struct: document.getElementById('sp-struct'),
+  bonds: document.getElementById('sp-bonds'),
+  energy: document.getElementById('sp-energy'),
+  storagecost: document.getElementById('sp-storagecost'),
+  repldrive: document.getElementById('sp-repldrive'),
+  similarity: document.getElementById('sp-similarity'),
+  constructrate: document.getElementById('sp-constructrate'),
+};
+
+function set(id, v){ document.getElementById(id).textContent = v; }
+
+function updateStatsPanel(){
+  const s = sim.stats();
+  set('s-tick', s.tick);
+  set('s-seed', sim.seed);
+  set('s-gen', s.generation);
+  set('s-entities', s.entityCount);
+  set('s-structs', s.structureCount);
+  set('s-sizedist', s.sizeDist);
+  set('s-maxstruct', s.maxStructSize);
+  set('s-avgstruct', s.avgStructSize);
+  set('s-lifetime', s.avgComponentLifetime);
+  set('s-motifs', s.topMotifs);
+  set('s-avglen', s.avgGenomeLen);
+  set('s-maxlen', s.maxGenomeLen);
+  set('s-avgbonds', s.avgBonds);
+  set('s-bondstotal', s.bondsTotal);
+  set('s-lineages', s.lineageCount);
+  set('s-similarity', s.avgNeighborSimilarity);
+  set('s-energy', s.avgEnergy);
+  set('s-maxenergy', s.maxEnergy);
+  set('s-storagecost', s.avgStorageCost);
+  set('s-repldrive', s.avgReplicationDrive);
+  set('s-speed', s.avgSpeed);
+  set('s-perc', s.avgPerception);
+  set('s-births', s.births + ' / ' + s.deaths);
+  set('s-construct', s.constructSuccess + ' / ' + s.constructAborted);
+  set('s-infoops', s.infoOps);
+
+  let totalOutcomes = 0;
+  for(const o of OUTCOMES) totalOutcomes += sim.outcomeCounts[o];
+  for(const o of OUTCOMES){
+    outcomeEls[o].textContent = totalOutcomes
+      ? (sim.outcomeCounts[o]/totalOutcomes*100).toFixed(1) + '%'
+      : '0%';
+  }
+
+  if(sim.tick_count % 5 === 0){
+    const h = sim.history;
+    drawSparkline(sparkCanvases.pop, h.population, '#5fd0a5');
+    drawSparkline(sparkCanvases.len, h.avgGenomeLen, '#f2c94c');
+    drawSparkline(sparkCanvases.struct, h.maxStructSize, '#e07b7b');
+    drawSparkline(sparkCanvases.bonds, h.bonds, '#7bafe0');
+    drawSparkline(sparkCanvases.energy, h.avgEnergy, '#c98bd6');
+    drawSparkline(sparkCanvases.storagecost, h.avgStorageCost, '#e0a05f');
+    drawSparkline(sparkCanvases.repldrive, h.avgReplicationDrive, '#6fd6e0');
+    drawSparkline(sparkCanvases.similarity, h.avgNeighborSimilarity, '#a0e06f');
+    drawSparkline(sparkCanvases.constructrate, h.constructRate, '#e06fd6');
+  }
+}
+
+document.getElementById('btn-pause').addEventListener('click', (ev)=>{
+  running = !running;
+  ev.target.textContent = running ? '⏸ Пауза' : '▶ Продовжити';
+  ev.target.classList.toggle('active', !running);
+});
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  sim = buildSim();
+  renderer.sim = sim;
+  pendingNote.textContent = '';
+});
+
+document.getElementById('btn-turbo').addEventListener('click', (ev)=>{
+  turboActive = !turboActive;
+  ev.target.textContent = turboActive ? '⏹ Спинити Turbo' : '⏩ Turbo';
+  ev.target.classList.toggle('active', turboActive);
+});
+
+document.getElementById('speed').addEventListener('input', (ev)=>{
+  speed = parseInt(ev.target.value, 10);
+  document.getElementById('speed-val').textContent = speed;
+});
+
+document.getElementById('pop').addEventListener('input', (ev)=>{
+  document.getElementById('pop-val').textContent = ev.target.value;
+});
+
+startSimLoop();
+requestAnimationFrame(renderLoop);
+</script>
+</body>
+</html>

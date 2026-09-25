@@ -1,0 +1,12 @@
+{
+  "name": "evo-replicator-world",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local minimal evolution simulation with heritable genomes and physical bonds",
+  "scripts": {
+    "start": "node basic/server.mjs",
+    "test": "node --test basic/core.test.mjs basic/worker.test.mjs",
+    "sim": "node basic/headless.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
